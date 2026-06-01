@@ -1,0 +1,56 @@
+# @package _global_
+
+defaults:
+  - /training: train_base
+  - /algo: ppo
+  - /robot: unitree/G1/29dof/29dof_training_isaaclab
+  - /env: motion_tracking
+  - /env/terminations: termination_motion_tracking
+  - /env/observations: motion_tracking/obs_motion_tracking
+  - /env/rewards: motion_tracking/rew_motion_tracking
+  - /env/domain_randomization: domain_rand_small
+  - /env/terrain: isaaclab_rough_lite
+  - /modules: motion_tracking/mlp_motrack_unitree_g1
+
+project_name: HoloMotionMotionTracking
+
+robot:
+  motion:
+    train_hdf5_roots:
+      - data/hdf5_datasets_exp1_all/processed_datasets/h5_AMASS_test
+    curriculum:
+      enabled: true
+      temp_start: 0.8
+      temp_end: 0.05
+      gamma_start: 0.15
+      gamma_end: 0.05
+      decay_start: 2000
+      decay_end: 15000
+      laplace_kappa: 1.0
+
+algo:
+  config:
+    save_interval: 500
+    dynamo_backend: "inductor"
+
+    # ================= [新增配置: 全局异步自适应采样] =================
+    sampling_strategy: "uniform" #"curriculum"
+    curriculum:
+      enabled: false
+      # scorer 字段可移除或保留，底层将直接启用 CurriculumHierarchicalSampler
+      clip_alpha: 0.02
+      motion_alpha: 0.005
+      # motion_weight: 0.5  <-- [删除] 两级独立采样不再需要几何融合权重
+      
+      # 衰减参数 (完全保留)
+      temp_start: 1.5
+      temp_end: 0.15
+      gamma_start: 0.15
+      gamma_end: 0.05
+      decay_start: 4000
+      decay_end: 20000
+    # ==========================================================
+
+    module_dict:
+      actor: ${modules.actor}
+      critic: ${modules.critic}

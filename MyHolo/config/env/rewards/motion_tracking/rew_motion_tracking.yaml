@@ -1,0 +1,112 @@
+# @package _global_
+
+rewards:
+  _config:
+    reward_prefix: "ref_"
+
+  root_pos_xy_tracking_exp:
+    weight: 1.0
+    params:
+      std: 0.2
+      ref_prefix: ${rewards._config.reward_prefix}
+
+  root_pos_rel_z_tracking_exp:
+    weight: 1.0
+    params:
+      std: 0.1
+      ref_prefix: ${rewards._config.reward_prefix}
+
+  root_rot_tracking_exp:
+    weight: 1.0
+    params:
+      std: 0.3
+      ref_prefix: ${rewards._config.reward_prefix}
+
+  root_lin_vel_tracking_l2_exp:
+    weight: 1.0
+    params:
+      std: 1.0
+      ref_prefix: ${rewards._config.reward_prefix}
+
+  root_ang_vel_tracking_l2_exp:
+    weight: 1.0
+    params:
+      std: 3.14
+      ref_prefix: ${rewards._config.reward_prefix}
+
+  root_rel_keybodylink_pos_tracking_l2_exp:
+    weight: 1.0
+    params:
+      keybody_names: ${robot.key_bodies}
+      std: 0.10
+      ref_prefix: ${rewards._config.reward_prefix}
+
+  root_rel_keybodylink_rot_tracking_l2_exp:
+    weight: 1.0
+    params:
+      keybody_names: ${robot.key_bodies}
+      std: 0.3
+      ref_prefix: ${rewards._config.reward_prefix}
+
+  root_rel_keybodylink_lin_vel_tracking_l2_exp:
+    weight: 1.0
+    params:
+      keybody_names: ${robot.key_bodies}
+      std: 1.0
+      ref_prefix: ${rewards._config.reward_prefix}
+
+  root_rel_keybodylink_ang_vel_tracking_l2_exp:
+    weight: 0.2
+    params:
+      keybody_names: ${robot.key_bodies}
+      std: 3.14
+      ref_prefix: ${rewards._config.reward_prefix}
+
+  #action_rate_l2:
+  #  weight: -0.1
+  #  params: {}
+
+  #adaptive_action_rate_l2_for_tracking:
+  #  weight: -0.1       # 保持基础权重为 -0.1，保障静态和慢速时的绝对稳定
+  #  params:
+  #    command_name: ref_motion
+  #    ref_prefix: ${rewards._config.reward_prefix}
+  #    velocity_std: 1.0  # 假设参考动作速度达到 1.0 m/s 时，开始显著放宽惩罚
+  #    min_scale: 0.4    # 高速下限为 -0.005，确保动态动作的跟踪精度
+
+  adaptive_action_rate_l2_per_dof_g1:
+    weight: -0.1       # 基础权重保持 -0.1
+    params:
+      command_name: ref_motion
+      ref_prefix: ${rewards._config.reward_prefix}
+      
+      # 【下半身：极度宽松】
+      velocity_std_legs: 1.5     # 只要速度超过 1.5 rad/s，惩罚就大幅衰减
+      min_scale_legs: 0.8       # 爆发时，平滑约束降至极低的 5%，彻底释放电机性能
+      
+      # 【上半身：极其严格】
+      velocity_std_upper: 2.0    # 速度必须高达 5.0 rad/s 才能让惩罚减半，平时死死锁住
+      min_scale_upper: 1.0       # 即使极速挥臂，保底也要有 20% 的平滑惩罚约束
+
+  joint_acc_l2:
+    weight: 0.0 #-5.0e-6
+    params: {}
+
+  joint_pos_limits:
+    weight: -10.0
+    params:
+      asset_cfg:
+        _target_: isaaclab.managers.scene_entity_cfg.SceneEntityCfg
+        name: robot
+        joint_names:
+          - ".*"
+
+  undesired_contacts:
+    weight: -0.1
+    params:
+      threshold: 1.0
+      sensor_cfg:
+        _target_: isaaclab.managers.scene_entity_cfg.SceneEntityCfg
+        name: contact_forces
+        body_names:
+          - ${robot.undesired_contacts_regrex}
